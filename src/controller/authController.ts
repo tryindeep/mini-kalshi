@@ -56,9 +56,6 @@ export const authController = {
 
             const passwordMatched = await bcryprt.compare(password , foundUser.password);
             if(passwordMatched){
-                if (!JWT_USER_SECRET) {
-                    throw new Error("JWT_USER_SECRET is missing");
-                }
                 const token = jwt.sign({
                     id : foundUser.id},
                     JWT_USER_SECRET,
