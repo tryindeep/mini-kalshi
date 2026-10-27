@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-const Mixed = mongoose.Schema.Types.ObjectId;
+const Mixed = mongoose.Schema.Types.Mixed;
 const ObjectId = mongoose.Schema.ObjectId;
 
 const walletEventSchema = new mongoose.Schema({
