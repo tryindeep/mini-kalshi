@@ -174,10 +174,13 @@ export const marketController = {
             user.balance = user.balance - amount;
             await user.save();
 
+            const bettorSide = market.side === "yes" ? "no" : "yes";
+
             // create bet 
             const bet = await Bet.create({
                 userId : req.user.id,
                 marketId : marketId,
+                side: bettorSide,
                 betAmount : amount
             })
 

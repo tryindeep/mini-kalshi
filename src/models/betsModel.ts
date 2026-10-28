@@ -12,6 +12,11 @@ const betSchema = new mongoose.Schema({
         ref : "Market",
         required : true,
     },
+    side: {
+        type: String,
+        enum: ["yes", "no"],
+        required: true,
+    },
     betAmount : {
         type : Number,
         required : true,
