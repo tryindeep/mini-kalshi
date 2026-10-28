@@ -6,38 +6,7 @@ import { Wallet } from "../models/walletEventsModel";
 import { Bet } from "../models/betsModel";
 
 export const marketController = {
-    // CREATE MARKET 
-    // Client
-    //   │
-    //   │ POST /market
-    //   │ Authorization: Bearer <JWT>
-    //   │ Body: { expiry, initialWager, ... }
-    //   ▼
-    // Auth Middleware
-    //   │
-    //   │ jwt.verify()
-    //   │
-    //   │ req.user = { id: userId }
-    //   ▼
-    // createMarket Controller
-    //   │
-    //   ├── 1. Check authentication
-    //   │
-    //   ├── 2. Validate request body
-    //   │
-    //   ├── 3. Check expiry
-    //   │
-    //   ├── 4. Find user
-    //   │
-    //   ├── 5. Check balance
-    //   │
-    //   ├── 6. Deduct initial wager
-    //   │
-    //   ├── 7. Create market
-    //   │
-    //   ├── 8. Create wallet transaction
-    //   │
-    //   └── 9. Return market ID
+   
 
     create : async ( req : Request , res : Response) => {
         try {
@@ -225,4 +194,35 @@ export const marketController = {
     },
 }
 
- 
+  // CREATE MARKET 
+    // Client
+    //   │
+    //   │ POST /market
+    //   │ Authorization: Bearer <JWT>
+    //   │ Body: { expiry, initialWager, ... }
+    //   ▼
+    // Auth Middleware
+    //   │
+    //   │ jwt.verify()
+    //   │
+    //   │ req.user = { id: userId }
+    //   ▼
+    // createMarket Controller
+    //   │
+    //   ├── 1. Check authentication
+    //   │
+    //   ├── 2. Validate request body
+    //   │
+    //   ├── 3. Check expiry
+    //   │
+    //   ├── 4. Find user
+    //   │
+    //   ├── 5. Check balance
+    //   │
+    //   ├── 6. Deduct initial wager
+    //   │
+    //   ├── 7. Create market
+    //   │
+    //   ├── 8. Create wallet transaction
+    //   │
+    //   └── 9. Return market ID

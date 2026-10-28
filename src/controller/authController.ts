@@ -16,7 +16,7 @@ export const authController = {
             if (!parsed.success) {
                 return res.status(400).json({ message: "Incorrect Format" });
             }
-            const { username, password } = parsed.data;
+            const { username, password,role } = parsed.data;
             // check if existing 
             const existingUser = await User.findOne({ username: username });
             if (existingUser) {
@@ -27,7 +27,8 @@ export const authController = {
             // createing user 
             await User.create({
                 username: username,
-                password: hashedpassword
+                password: hashedpassword,
+                role : role as "user" | "admin"
             })
             return res.status(201).json({ message: "User Registerd Sucessfully" });
         } catch (error) {
