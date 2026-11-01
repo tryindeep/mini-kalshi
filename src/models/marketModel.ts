@@ -1,34 +1,34 @@
 import mongoose from "mongoose";
-const ObjectId = mongoose.Schema.ObjectId;
+const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const marketSchema = new mongoose.Schema({
-    title : {
-        type : String,
-        required : true,
+    creatorId: {
+        type: ObjectId,
+        ref: "User",
+        required: true
     },
-    initialWager : {
-        type : Number,
-        required : true,
+    title: {
+        type: String,
+        required: true,
+        trim: true
     },
-    side : {
-        type : String,
-        enum : ["yes","no"],
-        required : true,
+    totalIssued: {
+        type: Number,
+        required: true,
+        min: 0,
     },
-    creatorId : {
-        type : ObjectId,
-        ref : "User",
-        required : true
-    },
-    expiry : {
-        type : Date,
-        required : true,
-    },
-    resolution : {
-        type : String,
-        enum : ["yes" , "no", "null"],
+    resolution: {
+        type: String,
+        enum: ["YES", "NO", "PENDING"],
         default: null,
-    }
-})
+    },
+    expiry: {
+        type: Date,
+        required: true,
+    },
 
-export const Market = mongoose.model("Market", marketSchema);
+},
+    { timestamps: true }
+)
+
+export const marketModel = mongoose.model("Market", marketSchema);

@@ -1,26 +1,36 @@
 
 import mongoose from "mongoose";
+import { required } from "zod/mini";
 
 const userSchema = new mongoose.Schema({
-    username : {
-        type : String,
-        unique : true,
-        required : true
+    username: {
+        type: String,
+        unique: true,
+        required: true,
+        trim: true
     },
-    password : {
-        type : String,
-        required : true,
-    },
-    balance : {
-        type : Number,
-        default : 0,
+    password: {
+        type: String,
+        required: true,
     },
     role: {
         type: String,
         enum: ["user", "admin"],
         default: "user",
         required: true,
-    }
-});
+    },
+    availableUsd: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+    lockedUsd: {
+        type: Number,
+        required: true,
+        default: 0
+    },
+},
+    { timestamps: true }
+);
 
-export const User = mongoose.model("User", userSchema);
+export const userModel = mongoose.model("User", userSchema);

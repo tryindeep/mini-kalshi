@@ -3,7 +3,7 @@ import { createMarketSchema, placeBetSchema } from "../types/marketValidator";
 import { User } from "../models/userModel";
 import { Market } from "../models/marketModel";
 import { Wallet } from "../models/walletEventsModel";
-import { Bet } from "../models/betsModel";
+import { Bet } from "../models/orderbookModel";
 
 export const marketController = {
    

@@ -1,7 +1,7 @@
 import type { Request, Response } from "express"
 import { resolveMarketSchema } from "../types/resolveValidator";
 import { Market } from "../models/marketModel";
-import { Bet } from "../models/betsModel";
+import { Bet } from "../models/orderbookModel";
 import { User } from "../models/userModel";
 import { Wallet } from "../models/walletEventsModel";
 
