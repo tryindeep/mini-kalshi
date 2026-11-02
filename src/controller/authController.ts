@@ -40,44 +40,44 @@ export const authController = {
     },
 
     // LOGIN
-    login : async (req: Request, res: Response) => {
-        try {
-            //validate Input 
-            const parsed = signinSchema.safeParse(req.body);
-            if (!parsed.success) {
-                return res.status(400).json({ message: "Incorrect Format" });
-            }
-            const {username , password} = parsed.data;
+    // login : async (req: Request, res: Response) => {
+    //     try {
+    //         //validate Input 
+    //         const parsed = signinSchema.safeParse(req.body);
+    //         if (!parsed.success) {
+    //             return res.status(400).json({ message: "Incorrect Format" });
+    //         }
+    //         const {username , password} = parsed.data;
 
-            const foundUser = await userModel.findOne({username : username});
-            if(!foundUser){
-                return res.status(403).json({
-                    message : "User Doesn't Exits, Please SignUp !!"
-                })
-            }
+    //         const foundUser = await userModel.findOne({username : username});
+    //         if(!foundUser){
+    //             return res.status(403).json({
+    //                 message : "User Doesn't Exits, Please SignUp !!"
+    //             })
+    //         }
 
-            const passwordMatched = await bcryprt.compare(password , foundUser.password);
-            if(passwordMatched){
-                const token = jwt.sign({
-                    id : foundUser.id},
-                    JWT_USER_SECRET,
-                    {expiresIn : '2h'} 
-                );
-                return res.status(200).json({
-                        token : token
-                }) 
-            }else{
-                return res.status(401).json({
-                    message : "Incorrect Credentials"
-                })
-            }
-        } catch (error) {
-            console.log(error);
-            return res.status(500).json({
-                message: "Internal Serever Error"
-            });
-        }
-    },
+    //         const passwordMatched = await bcryprt.compare(password , foundUser.password);
+    //         if(passwordMatched){
+    //             const token = jwt.sign({
+    //                 id : foundUser.id},
+    //                 JWT_USER_SECRET,
+    //                 {expiresIn : '2h'} 
+    //             );
+    //             return res.status(200).json({
+    //                     token : token
+    //             }) 
+    //         }else{
+    //             return res.status(401).json({
+    //                 message : "Incorrect Credentials"
+    //             })
+    //         }
+    //     } catch (error) {
+    //         console.log(error);
+    //         return res.status(500).json({
+    //             message: "Internal Serever Error"
+    //         });
+    //     }
+    // },
 
     //ONRAMP
 //     onramp : async (req : Request , res : Response ) => {
