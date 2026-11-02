@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 const ObjectId = mongoose.Schema.ObjectId;
 const fillSchema = new mongoose.Schema(
     {
+        marketId: {
+            type: ObjectId,
+            ref: "Market",
+            required: true,
+        },
         makerOrderId: {
             type: ObjectId,
             ref: "Order",
@@ -14,23 +19,18 @@ const fillSchema = new mongoose.Schema(
             required: true,
         },
 
-        marketId: {
-            type: ObjectId,
-            ref: "Market",
+        makerPrice: {
+            type: Number,
             required: true,
         },
-
+        takerPrice: {
+            type: Number,
+            required: true,
+        },
         quantity: {
             type: Number,
             required: true,
             min: 1,
-        },
-
-        price: {
-            type: Number,
-            required: true,
-            min: 0,
-            max: 1,
         },
     },
     { timestamps: true }

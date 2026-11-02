@@ -101,6 +101,7 @@ describe(`POST ${LOGIN_PATH}`, () => {
         expect(response.status).toBe(403);
         expect(response.data).toHaveProperty("message");
     });
+    
     test("does not expose password or password hash", async () => {
         const credentials = await createTestUser();
 

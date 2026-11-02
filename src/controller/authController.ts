@@ -1,9 +1,10 @@
 import type { Request, Response } from "express"
 import jwt from "jsonwebtoken";
 import bcryprt from "bcrypt";
-import { signinSchema, signupSchema } from "../types/authValidator";
+import { onrampSchema, signinSchema, signupSchema } from "../types/authValidator";
 import { userModel } from "../models/userModel";
 import { JWT_USER_SECRET } from "../config/config";
+import { transactionLogModel } from "../models/transactionLogModel";
 
 
 export const authController = {
@@ -40,35 +41,36 @@ export const authController = {
     },
 
     // LOGIN
-    login : async (req: Request, res: Response) => {
+    login: async (req: Request, res: Response) => {
         try {
             //validate Input 
             const parsed = signinSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ message: "Incorrect Format" });
             }
-            const {username , password} = parsed.data;
+            const { username, password } = parsed.data;
 
-            const foundUser = await userModel.findOne({username : username});
-            if(!foundUser){
+            const foundUser = await userModel.findOne({ username: username });
+            if (!foundUser) {
                 return res.status(403).json({
-                    message : "User Doesn't Exits, Please SignUp !!"
+                    message: "User Doesn't Exits, Please SignUp !!"
                 })
             }
 
-            const passwordMatched = await bcryprt.compare(password , foundUser.password);
-            if(passwordMatched){
+            const passwordMatched = await bcryprt.compare(password, foundUser.password);
+            if (passwordMatched) {
                 const token = jwt.sign({
-                    id : foundUser.id},
+                    id: foundUser.id
+                },
                     JWT_USER_SECRET,
-                    {expiresIn : '2h'} 
+                    { expiresIn: '2h' }
                 );
                 return res.status(200).json({
-                        token : token
-                }) 
-            }else{
+                    token: token
+                })
+            } else {
                 return res.status(401).json({
-                    message : "Incorrect Credentials"
+                    message: "Incorrect Credentials"
                 })
             }
         } catch (error) {
@@ -80,45 +82,54 @@ export const authController = {
     },
 
     //ONRAMP
-    //     onramp : async (req : Request , res : Response ) => {
-    //         try {
-    //             const parsed = onrampSchema.safeParse(req.body);
-    //             if (!parsed.success) {
-    //                 return res.status(400).json({ message: "Incorrect Format" });
-    //             }
-    //             const {amount } = parsed.data;
-    //             if (!req.user) {
-    //                 return res.status(401).json({ message: "Unauthorized" });
-    //             }
-    //             // added fake money 
-    //             const user  = await User.findByIdAndUpdate(
-    //                 req.user.id,
-    //                 {$inc : {balance : amount}},
-    //                 {new : true}
-    //             )
+    onramp: async (req: Request, res: Response) => {
+        try {
+            const parsed = onrampSchema.safeParse(req.body);
+            if (!parsed.success) {
+                return res.status(400).json({ message: "Incorrect Format" });
+            }
+            const { amount } = parsed.data;
 
-    //             if(!user){
-    //                 return res.status(404).json({ error: "User not found" });
-    //             }
+            if (Number.isSafeInteger(amount) || amount < 0) {
+                return res.status(400).json({
+                    message: "invalid input",
+                });
+            }
 
-    //             // Onramping in walletEvent
-    //             await Wallet.create({
-    //                 userId : user.id,
-    //                 tx_type : "onramp",
-    //                 amount : amount 
-    //             });
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            // added fake money 
+            const user = await userModel.findByIdAndUpdate(
+                { _id : req.user.id},
+                { $inc: { balance: amount } },
+                { new: true }
+            )
 
-    //             res.status(200).json({
-    //                 balance : user.balance
-    //             })
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
 
-    //         } catch (error) {
-    //             console.log(error);
-    //             return res.status(500).json({
-    //                 message: "Internal Serever Error"
-    //             });
-    //         }
-    //     },
+            // Onramping in walletEvent
+            await transactionLogModel.create({
+                userId : user.id,
+                action : "onramp",
+                qtyChange : 0,
+                balanceUSDChange : amount,
+            });
+
+            res.status(200).json({
+                message: "balance added successfully",
+                balance: user.availableUsd,
+            })
+
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({
+                message: "Internal Serever Error"
+            });
+        }
+    },
 
     //     // Profile 
     //     profile :  async (req : Request , res : Response ) => {

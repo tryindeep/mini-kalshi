@@ -27,7 +27,11 @@ const oderSchema = new mongoose.Schema({
         min: 0,
         max: 1,
     },
-
+    quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+    },
     remainingQuantity: {
         type: Number,
         required: true,

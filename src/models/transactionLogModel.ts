@@ -3,56 +3,58 @@ const ObjectId = mongoose.Schema.Types.ObjectId;
 const transactionLogSchema = new mongoose.Schema(
     {
         userId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: ObjectId,
             ref: "User",
             required: true,
         },
-
-        type: {
+        marketId: {
+            type: ObjectId,
+            ref: "Market",
+            required: true,
+        },
+        orderId: {
+            type: ObjectId,
+            ref: "Order",
+            required: true,
+        },
+        fillId: {
+            type: ObjectId,
+            ref: "Fill",
+            required: false,
+        },
+        outcome: {
+            type: String,
+            enum: ["yes", "no", null],
+            default: null,
+        },
+        action: {
             type: String,
             enum: [
-                "DEPOSIT",
-                "ORDER_LOCK",
-                "ORDER_CANCEL",
-                "TRADE",
-                "PAYOUT",
-                "REFUND",
-                "WITHDRAWAL",
+                "onramp",
+                "buy",
+                "sell",
+                "lock",
+                "unlock",
+                "split",
+                "refund",
+                "cancel",
             ],
             required: true,
         },
-
-        amount: {
+        qtyChange: {
             type: Number,
-            required: true,
         },
-
-        balanceBefore: {
+        lockedQtyChange: {
             type: Number,
-            required: true,
         },
-
-        balanceAfter: {
+        balanceUSDChange: {
             type: Number,
-            required: true,
         },
-
-        lockedBefore: {
+        lockedUSDChange: {
             type: Number,
-            required: true,
-        },
-
-        lockedAfter: {
-            type: Number,
-            required: true,
-        },
-
-        referenceId: {
-            type: ObjectId,
-            default: null,
         },
     },
-    { timestamps: true }
+    { timestamps: true },
 );
 
 export const transactionLogModel = mongoose.model(
