@@ -10,12 +10,12 @@ const transactionLogSchema = new mongoose.Schema(
         marketId: {
             type: ObjectId,
             ref: "Market",
-            required: true,
+            required: false,
         },
         orderId: {
             type: ObjectId,
             ref: "Order",
-            required: true,
+            required: false,
         },
         fillId: {
             type: ObjectId,

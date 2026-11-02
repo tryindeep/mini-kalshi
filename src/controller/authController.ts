@@ -84,26 +84,29 @@ export const authController = {
     //ONRAMP
     onramp: async (req: Request, res: Response) => {
         try {
+            console.log(req.user);
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }            
             const parsed = onrampSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ message: "Incorrect Format" });
             }
             const { amount } = parsed.data;
-
-            if (Number.isSafeInteger(amount) || amount < 0) {
+            
+            console.log(amount);
+            
+            if (!Number.isSafeInteger(amount) || amount <= 0) {
                 return res.status(400).json({
                     message: "invalid input",
                 });
             }
-
-            if (!req.user) {
-                return res.status(401).json({ message: "Unauthorized" });
-            }
+  
             // added fake money 
             const user = await userModel.findByIdAndUpdate(
-                { _id : req.user.id},
-                { $inc: { balance: amount } },
-                { new: true }
+                { _id: req.user.id },
+                { $inc: { availableUsd: amount } },
+                { returnDocument : "after"}
             )
 
             if (!user) {
@@ -112,10 +115,10 @@ export const authController = {
 
             // Onramping in walletEvent
             await transactionLogModel.create({
-                userId : user.id,
-                action : "onramp",
-                qtyChange : 0,
-                balanceUSDChange : amount,
+                userId: user.id,
+                action: "onramp",
+                qtyChange: 0,
+                balanceUSDChange: +amount,
             });
 
             res.status(200).json({
@@ -131,46 +134,47 @@ export const authController = {
         }
     },
 
-    //     // Profile 
-    //     profile :  async (req : Request , res : Response ) => {
-    //         try {
-    //             if(!req.user) {
-    //                 return res.status(401).json({ message: "Unauthorized" });
-    //             }
-    //             // we have to remove the password
-    //             const user  = await User.findById(req.user.id).select("-password");
-    //             if(!user){
-    //                 return res.status(404).json({ error: "User not found" });
-    //             }
+    // Profile 
+    profile: async (req: Request, res: Response) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            // we have to remove the password
+            const user = await userModel.findById(req.user.id).select("-password");
+            if (!user) {
+                return res.status(404).json({ error: "User not found" });
+            }
 
-    //             res.status(200).json({
-    //                 user : user
-    //             })
-    //         } catch (error) {
-    //             console.log(error);
-    //             return res.status(500).json({
-    //                 message: "Internal Serever Error"
-    //             });
-    //         }
-    //     },
-    //     // tansactions 
-    //     getTransaction : async (req : Request , res : Response ) => {
-    //         try {
-    //             if(!req.user) {
-    //                 return res.status(401).json({ message: "Unauthorized" });
-    //             }
-    //             const transactions = await Wallet.find({
-    //                 userId : req.user.id
-    //             });
-    //             res.status(200).json({
-    //                 Transactions : transactions
-    //             })
-    //         } catch (error) {
-    //             console.log(error);
-    //             return res.status(500).json({
-    //                 message: "Internal Serever Error"
-    //             });
-    //         }
-    //     }
+            res.status(200).json({
+                user: user
+            })
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({
+                message: "Internal Serever Error"
+            });
+        }
+    },
+
+    // tansactions 
+    getTransaction: async (req: Request, res: Response) => {
+        try {
+            if (!req.user) {
+                return res.status(401).json({ message: "Unauthorized" });
+            }
+            const transactions = await transactionLogModel.find({
+                userId: req.user.id
+            });
+            res.status(200).json({
+                Transactions: transactions
+            })
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({
+                message: "Internal Serever Error"
+            });
+        }
+    }
 
 };
