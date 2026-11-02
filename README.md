@@ -1,567 +1,145 @@
-# mini-kalshi
+# Mini-Kalshi — current Mongoose data model
 
-A prediction-market backend inspired by [Kalshi](https://kalshi.com). Users deposit (fake) money, create yes/no markets by staking a wager, other users bet against the creator, and an admin resolves the market after it expires — payouts are then settled automatically.
+This document describes the seven uploaded Mongoose model files as they are currently written. It preserves the source field names and enum values; recommended corrections are listed separately and are not silently applied to the diagram.
 
-## Table of Contents
+## Common Mongoose behavior
 
-- [How a market works](#how-a-market-works)
-- [Tech stack](#tech-stack)
-- [Project structure](#project-structure)
-- [Getting started](#getting-started)
-- [Database schema](#database-schema)
-- [Authentication](#authentication)
-- [API reference](#api-reference)
-- [Example flow](#example-flow)
+All seven schemas enable `{ timestamps: true }`, so Mongoose manages `createdAt` and `updatedAt`. Mongoose also creates an `_id` field by default; this document treats `_id` as the primary key (PK).
 
----
+## Collections / models
 
-## How a market works
-
-1. **Create** — A user opens a market with a `title`, picks a `side` (`yes` / `no`), sets an `expiry` date and stakes an `initialWager`. The wager is debited from their balance immediately.
-2. **Bet** — Other users bet on the **opposite** side of the creator. Bets are matched 1:1 against the creator's wager, so the sum of all bets on a market can never exceed `initialWager`. The creator cannot bet on their own market.
-3. **Resolve** — After `expiry`, an admin resolves the market as `yes` or `no`.
-4. **Payout**
-   - **Creator's side wins** → creator receives `initialWager + totalBets` (their own stake back, plus all the bettors' stakes).
-   - **Bettors' side wins** → every bettor receives `2 × betAmount`; the creator is refunded the unmatched part of the wager (`initialWager − totalBets`) if it is greater than 0.
-
-**Example:** creator stakes `100` on `yes`; two users bet `40` and `30` on `no` (`totalBets = 70`).
-
-| Outcome | Creator | Bettors |
-| --- | --- | --- |
-| Resolves `yes` | +170 (100 + 70) | lose their stakes |
-| Resolves `no` | +30 (refund of unmatched wager) | +80 and +60 |
-
-All money amounts are positive integers.
-
----
-
-## Tech stack
-
-| Layer | Tech |
-| --- | --- |
-| Runtime | [Bun](https://bun.com) |
-| Language | TypeScript |
-| Framework | Express 5 |
-| Database | MongoDB via Mongoose |
-| Validation | Zod |
-| Auth | JWT (`jsonwebtoken`) + `bcrypt` password hashing |
-
----
-
-## Project structure
-
-```
-mini-kalshi/
-├── index.ts                      # Express app bootstrap + route mounting
-└── src/
-    ├── config/
-    │   ├── config.ts             # Loads JWT secret (throws if missing)
-    │   └── db.ts                 # MongoDB connection
-    ├── controller/
-    │   ├── authController.ts     # register, login, onramp, profile, transactions
-    │   ├── marketController.ts   # create market, list markets, place bet, my bets
-    │   └── resolveController.ts  # resolve market + settle payouts
-    ├── middleware/
-    │   ├── authMiddleware.ts     # verifies JWT, sets req.user
-    │   └── adminMiddleware.ts    # requires role === "admin"
-    ├── models/                   # Mongoose schemas (User, Market, Bet, Wallet)
-    ├── routes/                   # Express routers
-    └── types/                    # Zod validators + Express type augmentation
-```
-
----
-
-## Getting started
-
-### Prerequisites
-
-- [Bun](https://bun.com) installed
-- A running MongoDB instance (local or Atlas)
-
-### Environment variables
-
-Create a `.env` file in the project root:
-
-```env
-DATABASE_URL=mongodb://localhost:27017/mini-kalshi
-JWT_USER_SECRET=replace-with-a-long-random-string
-PORT=3002
-```
-
-| Variable | Required | Description |
-| --- | --- | --- |
-| `DATABASE_URL` | Yes | MongoDB connection string |
-| `JWT_USER_SECRET` | Yes | Secret used to sign JWTs. The app throws on startup if it is missing |
-| `PORT` | No | HTTP port (default `3002`) |
-
-### Install and run
-
-```bash
-bun install
-bun run index.ts
-```
-
-The API is then available at `http://localhost:3002/api/v1`.
-
----
-
-## Database schema
-
-MongoDB, accessed through Mongoose. The four models map to the collections `users`, `markets`, `bets` and `wallets`. Every document also has Mongoose's default `_id` and `__v`.
-
-```mermaid
-erDiagram
-    USER   ||--o{ MARKET : creates
-    USER   ||--o{ BET    : places
-    MARKET ||--o{ BET    : receives
-    USER   ||--o{ WALLET : "has events"
-
-    USER {
-        ObjectId _id PK
-        string username UK
-        string password "bcrypt hash"
-        number balance
-        string role "user | admin"
-    }
-    MARKET {
-        ObjectId _id PK
-        string title
-        number initialWager
-        string side "yes | no"
-        ObjectId creatorId FK
-        date expiry
-        string resolution "null | yes | no"
-    }
-    BET {
-        ObjectId _id PK
-        ObjectId userId FK
-        ObjectId marketId FK
-        string side "yes | no"
-        number betAmount
-    }
-    WALLET {
-        ObjectId _id PK
-        ObjectId userId FK
-        string tx_type "onramp | created | bet | payout | refund"
-        mixed externalId
-        number amount
-    }
-```
-
-### `users`
-
-| Field | Type | Required | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `username` | String | Yes | — | **Unique** |
-| `password` | String | Yes | — | bcrypt hash (10 salt rounds) |
-| `balance` | Number | — | `0` | Spendable balance |
-| `role` | String | Yes | `"user"` | Enum: `user`, `admin` |
-
-### `markets`
-
-| Field | Type | Required | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `title` | String | Yes | — | The question / statement being predicted |
-| `initialWager` | Number | Yes | — | Creator's stake; also the cap on total bets |
-| `side` | String | Yes | — | **Creator's** side. Enum: `yes`, `no` |
-| `creatorId` | ObjectId → `User` | Yes | — | |
-| `expiry` | Date | Yes | — | Betting closes here; resolution is allowed only after it |
-| `resolution` | String | — | `null` | `null` while open; set to `yes` or `no` once resolved |
-
-### `bets`
-
-| Field | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `userId` | ObjectId → `User` | Yes | The bettor |
-| `marketId` | ObjectId → `Market` | Yes | |
-| `side` | String | Yes | Enum: `yes`, `no`. Set by the server — always the opposite of the market's `side` |
-| `betAmount` | Number | Yes | Positive integer |
-
-### `wallets` (ledger of balance changes)
-
-Every balance change writes one event here. `amount` is signed: negative = debit, positive = credit.
-
-| Field | Type | Required | Notes |
-| --- | --- | --- | --- |
-| `userId` | ObjectId → `User` | Yes | |
-| `tx_type` | String | Yes | Enum: `onramp`, `created`, `bet`, `payout`, `refund` |
-| `externalId` | Mixed | — | Reference to the related market / bet (see below) |
-| `amount` | Number | — | Signed amount |
-
-What each `tx_type` looks like:
-
-| `tx_type` | Written when | `externalId` | `amount` |
-| --- | --- | --- | --- |
-| `onramp` | User adds funds | *(not set)* | `+amount` |
-| `created` | User creates a market | `{ marketId }` | `−initialWager` |
-| `bet` | User places a bet | `{ betId, marketId }` | `−betAmount` |
-| `payout` | Market resolved — creator wins | `{ marketId }` | `+(initialWager + totalBets)` |
-| `payout` | Market resolved — bettor wins | `{ marketId, betId }` | `+(2 × betAmount)` |
-| `refund` | Market resolved — bettors win, wager partly unmatched | `{ marketId }` | `+(initialWager − totalBets)` |
-
-### Indexes
-
-Only the defaults: `_id` on every collection and the unique index on `users.username`.
-
----
-
-## Authentication
-
-Protected routes need a JWT in the `Authorization` header:
-
-```
-Authorization: Bearer <token>
-```
-
-- A token is issued by `POST /api/v1/auth/login` and is valid for **2 hours**.
-- The token payload contains only the user's `id`.
-- The **admin-only** route additionally loads the user from the database and requires `role === "admin"`.
-
-| Situation | Status | Body |
-| --- | --- | --- |
-| No `Authorization` token | `401` | `{ "messege": "Unauthorized" }` *(sic — key is spelled `messege`)* |
-| Invalid / expired token | `401` | `{ "message": "Unauthorized" }` |
-| Not an admin (admin routes) | `403` | `{ "message": "Admin access required" }` |
-
----
-
-## API reference
-
-**Base URL:** `http://localhost:3002/api/v1`
-
-All request and response bodies are JSON (`Content-Type: application/json`).
-
-| Method | Endpoint | Auth | Description |
-| --- | --- | --- | --- |
-| `POST` | [`/auth/register`](#post-authregister) | — | Create an account |
-| `POST` | [`/auth/login`](#post-authlogin) | — | Log in, receive a JWT |
-| `POST` | [`/auth/onramp`](#post-authonramp) | User | Add (fake) funds to balance |
-| `GET` | [`/auth/profile`](#get-authprofile) | User | Get own profile and balance |
-| `GET` | [`/auth/transactions`](#get-authtransactions) | User | Get own wallet events |
-| `POST` | [`/market`](#post-market) | User | Create a market |
-| `GET` | [`/market`](#get-market) | — | List all markets |
-| `POST` | [`/market/bet`](#post-marketbet) | User | Bet on a market |
-| `GET` | [`/market/bets`](#get-marketbets) | User | List own bets |
-| `POST` | [`/resolve`](#post-resolve) | Admin | Resolve an expired market and settle payouts |
-
-### Error format
-
-Validation failures return `400` with `{ "message": "Incorrect Format" }`. Unexpected failures return `500` with `{ "message": "Internal Serever Error" }`. Business-rule errors use either a `message` or an `error` key, as listed per endpoint below.
-
----
-
-### Auth
-
-#### `POST /auth/register`
-
-Create a new user.
-
-**Body**
+### 1. User (`userModel.ts`)
 
 | Field | Type | Rules |
-| --- | --- | --- |
-| `username` | string | min 3 characters, must be unique |
-| `password` | string | min 6 characters |
-| `role` | string | required; `"user"` or `"admin"` |
+|---|---|---|
+| `_id` | ObjectId | PK; generated by Mongoose |
+| `username` | String | Required, unique, trimmed |
+| `password` | String | Required |
+| `role` | String | Enum: `user`, `admin`; default `user`; required |
+| `availableUsd` | Number | Required; default `0` |
+| `lockedUsd` | Number | Required; default `0` |
 
-```json
-{ "username": "alice", "password": "secret123", "role": "user" }
-```
-
-**Responses**
-
-| Status | Body |
-| --- | --- |
-| `201` | `{ "message": "User Registerd Sucessfully" }` |
-| `400` | `{ "message": "Incorrect Format" }` |
-| `409` | `{ "message": "User Already Exists" }` |
-
----
-
-#### `POST /auth/login`
-
-**Body**
-
-| Field | Type |
-| --- | --- |
-| `username` | string |
-| `password` | string |
-
-**Responses**
-
-| Status | Body |
-| --- | --- |
-| `200` | `{ "token": "<jwt>" }` |
-| `400` | `{ "message": "Incorrect Format" }` |
-| `401` | `{ "message": "Incorrect Credentials" }` |
-| `403` | `{ "message": "User Doesn't Exits, Please SignUp !!" }` |
-
----
-
-#### `POST /auth/onramp`
-
-Adds funds to the authenticated user's balance and records an `onramp` wallet event.
-
-**Body**
+### 2. Market (`marketModel.ts`)
 
 | Field | Type | Rules |
-| --- | --- | --- |
-| `amount` | number | positive integer |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `creatorId` | ObjectId | FK reference to `User`; required |
+| `title` | String | Required, trimmed |
+| `totalIssued` | Number | Required; minimum `0` |
+| `resolution` | String | Enum: `YES`, `NO`, `PENDING`; default `null` |
+| `expiry` | Date | Required |
 
-**Responses**
-
-| Status | Body |
-| --- | --- |
-| `200` | `{ "balance": 500 }` — new balance |
-| `400` | `{ "message": "Incorrect Format" }` |
-| `404` | `{ "error": "User not found" }` |
-
----
-
-#### `GET /auth/profile`
-
-Returns the authenticated user (without the password hash).
-
-**Response `200`**
-
-```json
-{
-  "user": {
-    "_id": "6ae22e279a09e824291ee7b0",
-    "username": "alice",
-    "balance": 500,
-    "role": "user",
-    "__v": 0
-  }
-}
-```
-
-Errors: `404` `{ "error": "User not found" }`
-
----
-
-#### `GET /auth/transactions`
-
-Returns all wallet events for the authenticated user.
-
-**Response `200`**
-
-```json
-{
-  "Transactions": [
-    { "_id": "…", "userId": "…", "tx_type": "onramp", "amount": 500, "__v": 0 },
-    {
-      "_id": "…",
-      "userId": "…",
-      "tx_type": "created",
-      "externalId": { "marketId": "…" },
-      "amount": -100,
-      "__v": 0
-    }
-  ]
-}
-```
-
-> The top-level key is `Transactions` (capital T).
-
----
-
-### Markets
-
-#### `POST /market`
-
-Create a market. The `initialWager` is deducted from the creator's balance and a `created` wallet event is recorded.
-
-**Body**
+### 3. Orderbook (`orderbookModel.ts`)
 
 | Field | Type | Rules |
-| --- | --- | --- |
-| `title` | string | min 3 characters |
-| `initialWager` | number | positive integer, must be ≤ current balance |
-| `side` | string | `"yes"` or `"no"` — the creator's side |
-| `expiry` | date | ISO date string; must be in the future |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `marketId` | ObjectId | FK reference to `Market`; required |
+| `outcome` | String | Enum: `YES`, `NO`; required |
 
-```json
-{
-  "title": "Will BTC close above $100k on 31 Dec?",
-  "initialWager": 100,
-  "side": "yes",
-  "expiry": "2026-12-31T23:59:59.000Z"
-}
-```
+**Unique compound index:** `{ marketId: 1, outcome: 1 }`. This allows at most one Orderbook document for each outcome within a market.
 
-**Responses**
+The current Orderbook schema stores only the market reference and outcome. It does not store bid/ask levels or price queues; those would need to be derived from `Order` documents or held separately in memory.
 
-| Status | Body |
-| --- | --- |
-| `201` | `{ "id": "<marketId>" }` |
-| `400` | `{ "message": "Incorrect Format" }` |
-| `400` | `{ "message": "Expiry must be in the future" }` |
-| `400` | `{ "error": "Insufficient Balance" }` |
-
----
-
-#### `GET /market`
-
-Public. Returns every market, with the creator's username populated.
-
-**Response `200`**
-
-```json
-{
-  "markets": [
-    {
-      "_id": "…",
-      "title": "Will BTC close above $100k on 31 Dec?",
-      "initialWager": 100,
-      "side": "yes",
-      "creatorId": { "_id": "…", "username": "alice" },
-      "expiry": "2026-12-31T23:59:59.000Z",
-      "resolution": null,
-      "__v": 0
-    }
-  ]
-}
-```
-
----
-
-#### `POST /market/bet`
-
-Bet against the creator. The server assigns the bet to the **opposite** side of the market's `side`, deducts `amount` from the bettor's balance and records a `bet` wallet event.
-
-**Body**
+### 4. Order (source currently registers model name `Oder`; file `orderModel.ts`)
 
 | Field | Type | Rules |
-| --- | --- | --- |
-| `marketId` | string | ID of an existing market |
-| `amount` | number | positive integer, must be ≤ bettor's balance |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `oderbookId` | ObjectId | FK reference to `Orderbook`; required (spelling as in source) |
+| `userId` | ObjectId | FK reference to `User`; required |
+| `side` | String | Enum: `BUY`, `SELL`; required |
+| `price` | Number | Required; minimum `0`, maximum `1` |
+| `quantity` | Number | Required; minimum `1` |
+| `remainingQuantity` | Number | Required; minimum `1` |
+| `status` | String | Enum: `OPEN`, `PERTIALLY FILLED`, `FILLED`, `CANCELLED`; default `OPEN` |
 
-```json
-{ "marketId": "6ae22e279a09e824291ee7b0", "amount": 40 }
-```
+The schema variable is currently named `oderSchema`, and the Mongoose model is registered as `Oder`. The relationship field is currently spelled `oderbookId`.
 
-**Responses**
-
-| Status | Body | Reason |
-| --- | --- | --- |
-| `201` | `{ "betId": "<betId>" }` | Bet placed |
-| `400` | `{ "message": "Incorrect Format" }` | Invalid body |
-| `404` | `{ "error": "Market not found" }` | |
-| `400` | `{ "error": "Market already resolved" }` | |
-| `400` | `{ "error": "Market expired" }` | `now >= expiry` |
-| `400` | `{ "error": "Creator cannot bet against their own market" }` | |
-| `400` | `{ "error": "Bet exceeds remaining available amount" }` | Total bets would exceed `initialWager` |
-| `404` | `{ "error": "User not found" }` | |
-| `400` | `{ "error": "Insufficient balance" }` | |
-
----
-
-#### `GET /market/bets`
-
-Returns the authenticated user's bets, with each `marketId` populated with the full market document.
-
-**Response `200`**
-
-```json
-{
-  "bets": [
-    {
-      "_id": "…",
-      "userId": "…",
-      "marketId": {
-        "_id": "…",
-        "title": "Will BTC close above $100k on 31 Dec?",
-        "initialWager": 100,
-        "side": "yes",
-        "creatorId": "…",
-        "expiry": "2026-12-31T23:59:59.000Z",
-        "resolution": null,
-        "__v": 0
-      },
-      "side": "no",
-      "betAmount": 40,
-      "__v": 0
-    }
-  ]
-}
-```
-
----
-
-### Resolution
-
-#### `POST /resolve`
-
-**Admin only.** Resolves an expired market and settles all payouts (see [How a market works](#how-a-market-works)). Writes `payout` / `refund` wallet events for every credited user.
-
-**Body**
+### 5. Fill (`fillModel.ts`)
 
 | Field | Type | Rules |
-| --- | --- | --- |
-| `marketId` | string | ID of an existing market |
-| `resolution` | string | `"yes"` or `"no"` — the actual outcome |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `marketId` | ObjectId | FK reference to `Market`; required |
+| `makerOrderId` | ObjectId | FK reference to `Order`; required |
+| `takerOrderId` | ObjectId | FK reference to `Order`; required |
+| `makerPrice` | Number | Required |
+| `takerPrice` | Number | Required |
+| `quantity` | Number | Required; minimum `1` |
 
-```json
-{ "marketId": "6ae22e279a09e824291ee7b0", "resolution": "no" }
-```
+### 6. StockBalance (file `stockBalanceModel.ts`)
 
-**Responses**
+| Field | Type | Rules |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `userId` | ObjectId | FK reference to `User`; required |
+| `marketId` | ObjectId | FK reference to `Market`; required |
+| `outcome` | String | Enum: `YES`, `NO`; required |
+| `quantity` | Number | Default `0`; minimum `0` |
+| `lockedQuantity` | Number | Default `0`; minimum `0` |
 
-| Status | Body |
-| --- | --- |
-| `200` | `{ "message": "Market resolved successfully", "resolution": "no" }` |
-| `400` | `{ "message": "Incorrect Format" }` |
-| `404` | `{ "error": "Market not found" }` |
-| `400` | `{ "error": "Market already resolved" }` |
-| `400` | `{ "error": "Market has not expired yet" }` |
-| `401` / `403` | Not authenticated / not an admin (see [Authentication](#authentication)) |
+**Unique compound index:** `{ userId: 1, marketId: 1, outcome: 1 }`. This allows one balance document per user, market, and outcome.
 
----
+The exported variable is currently spelled `stockBalenceModel`. More importantly, the schema is registered with `mongoose.model("User", stockBalanceSchema)` in the uploaded file, even though this is the StockBalance schema. This conflicts with the actual User model name and must be corrected before relying on this model.
 
-## Example flow
+### 7. TransactionLog (`transactionLogModel.ts`)
 
-```bash
-BASE=http://localhost:3002/api/v1
+| Field | Type | Rules |
+|---|---|---|
+| `_id` | ObjectId | PK |
+| `userId` | ObjectId | FK reference to `User`; required |
+| `marketId` | ObjectId | FK reference to `Market`; required |
+| `orderId` | ObjectId | FK reference to `Order`; required |
+| `fillId` | ObjectId | FK reference to `Fill`; optional |
+| `outcome` | String | Enum: `yes`, `no`, `null`; default `null` |
+| `action` | String | Enum: `onramp`, `buy`, `sell`, `lock`, `unlock`, `split`, `refund`, `cancel`; required |
+| `qtyChange` | Number | Optional |
+| `lockedQtyChange` | Number | Optional |
+| `balanceUSDChange` | Number | Optional |
+| `lockedUSDChange` | Number | Optional |
 
-# 1. Register an admin and two users
-curl -X POST $BASE/auth/register -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"secret123","role":"admin"}'
-curl -X POST $BASE/auth/register -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"secret123","role":"user"}'
-curl -X POST $BASE/auth/register -H "Content-Type: application/json" \
-  -d '{"username":"bob","password":"secret123","role":"user"}'
+## Relationships represented by ObjectId references
 
-# 2. Log in as alice and bob
-ALICE=$(curl -s -X POST $BASE/auth/login -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"secret123"}' | jq -r .token)
-BOB=$(curl -s -X POST $BASE/auth/login -H "Content-Type: application/json" \
-  -d '{"username":"bob","password":"secret123"}' | jq -r .token)
+These are Mongoose `ref` relationships. Mongoose references do not by themselves create SQL-style foreign-key constraints or guarantee that the referenced document exists.
 
-# 3. Fund both accounts
-curl -X POST $BASE/auth/onramp -H "Authorization: Bearer $ALICE" \
-  -H "Content-Type: application/json" -d '{"amount":500}'
-curl -X POST $BASE/auth/onramp -H "Authorization: Bearer $BOB" \
-  -H "Content-Type: application/json" -d '{"amount":500}'
+| From | Reference field | To | Meaning |
+|---|---|---|---|
+| Market | `creatorId` | User | A user creates a market |
+| Orderbook | `marketId` | Market | An orderbook belongs to a market |
+| Order | `oderbookId` | Orderbook | An order belongs to an outcome's orderbook |
+| Order | `userId` | User | An order is placed by a user |
+| Fill | `marketId` | Market | A fill belongs to a market |
+| Fill | `makerOrderId` | Order | The maker order participating in a fill |
+| Fill | `takerOrderId` | Order | The taker order participating in a fill |
+| StockBalance | `userId` | User | A position belongs to a user |
+| StockBalance | `marketId` | Market | A position belongs to a market |
+| TransactionLog | `userId` | User | An event belongs to a user |
+| TransactionLog | `marketId` | Market | An event references a market |
+| TransactionLog | `orderId` | Order | An event references an order |
+| TransactionLog | `fillId` | Fill | An event may reference a fill |
 
-# 4. Alice creates a market (stakes 100 on "yes")
-MARKET=$(curl -s -X POST $BASE/market -H "Authorization: Bearer $ALICE" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Will it rain tomorrow?","initialWager":100,"side":"yes","expiry":"2026-12-31T23:59:59Z"}' \
-  | jq -r .id)
+## Issues to resolve before relying on the model layer
 
-# 5. Bob bets 40 against her (on "no")
-curl -X POST $BASE/market/bet -H "Authorization: Bearer $BOB" \
-  -H "Content-Type: application/json" \
-  -d "{\"marketId\":\"$MARKET\",\"amount\":40}"
+1. **StockBalance is registered as `User`.** Change the model name to `StockBalance` (and fix the `stockBalenceModel` export spelling). As written, it can collide with the actual User model and may map to the wrong collection.
+2. **Order naming is inconsistent.** The file is `orderModel.ts`, but the schema variable, model name, and `oderbookId` field use `oder` spelling. Standardize to `orderSchema`, model name `Order`, export `orderModel`, and a consistently named `orderbookId` field. Coordinate this with all controllers, queries, refs, and existing data before renaming.
+3. **The partial-fill status is misspelled.** `PERTIALLY FILLED` likely intends `PARTIALLY_FILLED` (or another single canonical value). Update all code and stored data consistently.
+4. **`remainingQuantity` has `min: 1`.** A fully filled order normally has `remainingQuantity: 0`; the current validator would reject saving zero. Consider `min: 0` and test the `FILLED` transition.
+5. **Market resolution is ambiguous.** `resolution` includes `PENDING` but defaults to `null`. Decide whether unresolved markets are represented by `null` or `PENDING`, then make the enum/default consistent.
+6. **Outcome casing is inconsistent.** Market/Orderbook/StockBalance use uppercase `YES`/`NO`, while TransactionLog uses lowercase `yes`/`no`. Standardize the representation or explicitly map between them.
+7. **TransactionLog requires `marketId` and `orderId` for every action.** The enum includes `onramp`, which is normally an account-level deposit and may not have a market or order. Consider making these references optional where the action does not apply, or model account-level cash events separately.
+8. **Orderbook is a container, not a persisted price ladder.** Its schema has no bids, asks, price levels, or queues. If this is intentional, keep the order documents as the durable order source and derive the book view from open orders (or maintain an in-memory book with a rebuild strategy).
+9. **Check the onramp controller against the current User model.** The uploaded User schema has `availableUsd` and `lockedUsd`, not `balance`; code still updating `balance` would be inconsistent with this model. The earlier controller screenshot also used `Wallet.create`, while the current uploaded model set has `TransactionLog` instead of a Wallet model.
+10. **Clarify `makerPrice` versus `takerPrice`.** The Fill schema stores both values but does not define whether these are each order's limit prices or the actual execution price. Document the intended meaning and test it in matching logic.
 
-# 6. After the market expires, the admin resolves it
-ADMIN=$(curl -s -X POST $BASE/auth/login -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"secret123"}' | jq -r .token)
-curl -X POST $BASE/resolve -H "Authorization: Bearer $ADMIN" \
-  -H "Content-Type: application/json" \
-  -d "{\"marketId\":\"$MARKET\",\"resolution\":\"no\"}"
+## Matching and settlement context visible from these schemas
 
-# 7. Check the ledger
-curl $BASE/auth/transactions -H "Authorization: Bearer $BOB"
-```
+- An Order is associated with a User and an Orderbook, and stores `side`, `price`, `quantity`, `remainingQuantity`, and `status`.
+- An Orderbook is unique per `marketId + outcome` and distinguishes `YES` from `NO`.
+- A Fill records one market, a maker order, a taker order, both stored prices, and the executed quantity.
+- StockBalance stores a user's YES/NO quantity and locked quantity for a market/outcome pair.
+- User stores USD available and locked amounts.
+- TransactionLog stores signed or unsigned change values for quantity, locked quantity, available USD, and locked USD; the schema does not specify sign conventions.
+
+The schemas alone do not define matching priority, execution-price rules, balance reservation rules, atomicity, settlement payouts, or market-resolution workflows. Those need to be verified in the controllers/services that write these documents.
