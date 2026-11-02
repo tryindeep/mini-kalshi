@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const ObjectId = mongoose.Schema.ObjectId;
+const ObjectId = mongoose.Schema.Types.ObjectId;
 
 const oderSchema = new mongoose.Schema({
     oderbookId: {
@@ -25,7 +25,7 @@ const oderSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 0,
-        mmax: 1,
+        max: 1,
     },
 
     remainingQuantity: {

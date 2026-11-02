@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-
+const ObjectId = mongoose.Schema.Types.ObjectId;
 const transactionLogSchema = new mongoose.Schema(
     {
         userId: {
@@ -48,7 +48,7 @@ const transactionLogSchema = new mongoose.Schema(
         },
 
         referenceId: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: ObjectId,
             default: null,
         },
     },

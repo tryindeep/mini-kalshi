@@ -1,10 +1,7 @@
 import type { Request, Response } from "express"
 import jwt from "jsonwebtoken";
 import bcryprt from "bcrypt";
-import { onrampSchema, signinSchema, signupSchema } from "../types/authValidator.ts"
-import { User } from "../models/userModel";
-import { JWT_USER_SECRET } from "../config/config.ts";
-import { Wallet } from "../models/walletEventsModel.ts";
+
 
 export const authController = {
 
