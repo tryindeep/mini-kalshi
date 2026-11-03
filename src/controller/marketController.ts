@@ -18,40 +18,40 @@ export const marketController = {
             }
             const { title, expiry } = parsed.data;
 
-            if (expiry <= new Date) {
+            if (expiry <= new Date()) {
                 return res.status(400).json({ message: "expiry data can only be in the future" });
 
             }
             const creatorId = req.user.id;
-            const newMarket = await mongoose.connection.transaction(
-                async (session) => {
-                    const markets = await marketModel.create(
-                        [
-                            {
-                                title,
-                                creatorId: creatorId,
-                                totalIssued: 0,
-                                expiry,
-                            }
-                        ],
-                        { session }
-                    );
+            const newMarketId = await mongoose.connection.transaction(async (session) => {
+                const [market] = await marketModel.create(
+                    [{
+                        title,
+                        creatorId,
+                        totalIssued: 0,
+                        expiry,
+                    }],
+                    { session },
+                );
 
-                    const market = markets[0];
-                    await orderbookModel.create(
-                        [
-                            { marketId: market?._id, type: "YES" },
-                            { marketId: market?._id, type: "NO" }
-                        ],
-                        { session },
-                    );
-
-                    return market?._id;
+                if (!market) {
+                    throw new Error("Market creation returned no document");
                 }
-            );
+
+                await orderbookModel.create(
+                    [
+                        { marketId: market._id, outcome: "YES" },
+                        { marketId: market._id, outcome: "NO" },
+                    ],
+                    { session, ordered: true },
+                );
+
+                return market._id;
+            });
+
             return res.status(201).json({
                 message: "market created successfully",
-                marketId: newMarket,
+                marketId: newMarketId,
             });
 
 
@@ -66,7 +66,8 @@ export const marketController = {
         try {
             const markets = await marketModel
                 .find()
-                .sort({ createdAt: -1 });
+                .sort({ createdAt: -1 })
+                .lean();
 
             return res.status(200).json({
                 message: "Markets fetched successfully",

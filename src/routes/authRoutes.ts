@@ -8,8 +8,8 @@ authRouter.post("/login" , authController.login);
 
 
 
-// // authenticated routes 
-// authRouter.use(authMiddleware);
-// authRouter.post("/onramp", authController.onramp);
-// authRouter.get("/profile", authController.profile);
-// authRouter.get("/transactions", authController.getTransaction);
+// authenticated routes 
+authRouter.use(authMiddleware);
+authRouter.post("/onramp", authController.onramp);
+
+authRouter.get("/transactions", authController.getTransaction);
