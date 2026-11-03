@@ -16,6 +16,7 @@ const marketSchema = new mongoose.Schema({
         type: Number,
         required: true,
         min: 0,
+        default: 0
     },
     resolution: {
         type: String,
@@ -26,9 +27,13 @@ const marketSchema = new mongoose.Schema({
         type: Date,
         required: true,
     },
+    status: { type: String, enum: ["OPEN", "CLOSED", "RESOLVED"], default: "OPEN" },
+    resolvedAt: { type: Date },
 
 },
     { timestamps: true }
 )
+
+marketSchema.index({ status: 1, expiry: 1 });
 
 export const marketModel = mongoose.model("Market", marketSchema);

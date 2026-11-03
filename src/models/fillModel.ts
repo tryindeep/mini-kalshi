@@ -18,16 +18,24 @@ const fillSchema = new mongoose.Schema(
             ref: "Order",
             required: true,
         },
-
-        makerPrice: {
-            type: Number,
+        makerUserId: {
+            type: ObjectId,
+            ref: "User",
             required: true,
         },
-        takerPrice: {
-            type: Number,
+        takerUserId: {
+            type: ObjectId,
+            ref: "User",
             required: true,
         },
-        type: {
+        price: {
+            type: Number,
+            required: true,
+            min: 1,
+            max: 99,
+            validate: { validator: Number.isInteger, message: "price must be integer cents" },
+        },
+        outcome: {
             type: String,
             enum: ["YES", "NO"],
             required: true,
@@ -40,5 +48,9 @@ const fillSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+fillSchema.index({ marketId: 1, createdAt: -1 });
+fillSchema.index({ makerUserId: 1, createdAt: -1 });
+fillSchema.index({ takerUserId: 1, createdAt: -1 });
+
 
 export const fillModel = mongoose.model("Fill", fillSchema);

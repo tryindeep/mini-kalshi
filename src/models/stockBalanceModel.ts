@@ -13,7 +13,7 @@ const stockBalanceSchema = new mongoose.Schema({
         ref: "Market",
         required: true,
     },
-    type: {
+    outcome: {
         type: String,
         enum: ["YES", "NO"],
         required: true,
@@ -38,4 +38,4 @@ stockBalanceSchema.index(
 );
 
 
-export const stockBalenceModel = mongoose.model("stockBalenceModel", stockBalanceSchema);
+export const stockBalanceModel = mongoose.model("StockBalance", stockBalanceSchema);

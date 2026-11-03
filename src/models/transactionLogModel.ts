@@ -59,6 +59,8 @@ const transactionLogSchema = new mongoose.Schema(
     { timestamps: true },
 );
 
+transactionLogSchema.index({ userId: 1, createdAt: -1 });
+
 export const transactionLogModel = mongoose.model(
     "TransactionLog",
     transactionLogSchema

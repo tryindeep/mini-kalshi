@@ -8,6 +8,11 @@ const orderSchema = new mongoose.Schema({
         ref: "Orderbook",
         required: true,
     },
+    marketId: {
+        type: ObjectId,
+        ref: "Market",
+        required: true,
+    },
 
     userId: {
         type: ObjectId,
@@ -15,7 +20,7 @@ const orderSchema = new mongoose.Schema({
         required: true,
     },
 
-    stockType: {
+    side: {
         type: String,
         enum: ["BUY", "SELL"],
         required: true,
@@ -24,8 +29,8 @@ const orderSchema = new mongoose.Schema({
     price: {
         type: Number,
         required: true,
-        min: 0,
-        max: 1,
+        min: 1,
+        max: 99,
     },
     quantity: {
         type: Number,
@@ -35,16 +40,21 @@ const orderSchema = new mongoose.Schema({
     remainingQuantity: {
         type: Number,
         required: true,
-        min: 1
+        min: 0
     },
 
     status: {
         type: String,
-        enum: ["OPEN", "PERTIALLY_FILLED", "FILLED", "CANCELLED"],
+        enum: ["OPEN", "PARTIALLY_FILLED", "FILLED", "CANCELLED"],
         default: "OPEN",
     },
 },
     { timestamps: true }
 )
+
+orderSchema.index({ orderbookId: 1, side: 1, status: 1, price: 1, createdAt: 1 });
+orderSchema.index({ orderbookId: 1, side: 1, status: 1, price: -1, createdAt: 1 });
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ marketId: 1, status: 1 });
 
 export const orderModel = mongoose.model("Order", orderSchema);
