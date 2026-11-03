@@ -7,7 +7,7 @@ const orderbookSchema = new mongoose.Schema({
         ref: "Market",
         required: true,
     },
-    type: {
+    outcome: {
         type: String,
         enum: ["YES", "NO"],
         required: true,

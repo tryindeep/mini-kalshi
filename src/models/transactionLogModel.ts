@@ -24,7 +24,7 @@ const transactionLogSchema = new mongoose.Schema(
         },
         outcome: {
             type: String,
-            enum: ["yes", "no", null],
+            enum: ["YES", "NO", null],
             default: null,
         },
         action: {
@@ -36,6 +36,8 @@ const transactionLogSchema = new mongoose.Schema(
                 "lock",
                 "unlock",
                 "split",
+                "merge",
+                "payout",
                 "refund",
                 "cancel",
             ],

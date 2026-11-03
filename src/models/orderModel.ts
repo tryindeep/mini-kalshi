@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const ObjectId = mongoose.Schema.Types.ObjectId;
 
-const oderSchema = new mongoose.Schema({
-    oderbookId: {
+const orderSchema = new mongoose.Schema({
+    orderbookId: {
         type: ObjectId,
         ref: "Orderbook",
         required: true,
@@ -40,11 +40,11 @@ const oderSchema = new mongoose.Schema({
 
     status: {
         type: String,
-        enum: ["OPEN", "PERTIALLY FILLED", "FILLED", "CANCELLED"],
+        enum: ["OPEN", "PERTIALLY_FILLED", "FILLED", "CANCELLED"],
         default: "OPEN",
     },
 },
     { timestamps: true }
 )
 
-export const oderModel = mongoose.model("Oder", oderSchema);
+export const orderModel = mongoose.model("Order", orderSchema);

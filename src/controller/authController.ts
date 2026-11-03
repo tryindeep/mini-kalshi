@@ -123,7 +123,7 @@ export const authController = {
 
             res.status(200).json({
                 message: "balance added successfully",
-                balance: user.availableUsd,
+                balance: user.availableUsdBalance,
             })
 
         } catch (error) {

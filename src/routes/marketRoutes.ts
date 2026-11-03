@@ -5,9 +5,4 @@ export const marketRouter = Router();
 
 
 marketRouter.post("/" ,authMiddleware, marketController.create);
-// marketRouter.get("/" , marketController.getAllMarkets);
-
-// // authentiacated routes
-// marketRouter.use(authMiddleware);
-// marketRouter.post("/bet" , marketController.placeBet);
-// marketRouter.get("/bets" , marketController.getBets);
+marketRouter.get("/" , marketController.getAllMarkets);

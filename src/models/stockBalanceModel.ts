@@ -38,4 +38,4 @@ stockBalanceSchema.index(
 );
 
 
-export const stockBalenceModel = mongoose.model("User", stockBalanceSchema);
+export const stockBalenceModel = mongoose.model("stockBalenceModel", stockBalanceSchema);

@@ -1,6 +1,5 @@
 import type { Request, Response } from "express"
 import { createMarketSchema } from "../types/marketValidator";
-import { userModel } from "../models/userModel";
 import mongoose from "mongoose";
 import { marketModel } from "../models/marketModel";
 import { orderbookModel } from "../models/orderbookModel";
