@@ -15,7 +15,7 @@ const oderSchema = new mongoose.Schema({
         required: true,
     },
 
-    side: {
+    stockType: {
         type: String,
         enum: ["BUY", "SELL"],
         required: true,

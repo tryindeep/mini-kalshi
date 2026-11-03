@@ -19,12 +19,12 @@ const userSchema = new mongoose.Schema({
         default: "user",
         required: true,
     },
-    availableUsd: {
+    availableUsdBalance: {
         type: Number,
         required: true,
         default: 0
     },
-    lockedUsd: {
+    lockedUsdBalance: {
         type: Number,
         required: true,
         default: 0

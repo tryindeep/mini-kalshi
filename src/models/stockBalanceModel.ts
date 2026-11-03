@@ -13,7 +13,7 @@ const stockBalanceSchema = new mongoose.Schema({
         ref: "Market",
         required: true,
     },
-    outcome: {
+    type: {
         type: String,
         enum: ["YES", "NO"],
         required: true,

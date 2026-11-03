@@ -27,6 +27,11 @@ const fillSchema = new mongoose.Schema(
             type: Number,
             required: true,
         },
+        type: {
+            type: String,
+            enum: ["YES", "NO"],
+            required: true,
+        },
         quantity: {
             type: Number,
             required: true,
