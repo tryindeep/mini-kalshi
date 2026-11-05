@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 const ObjectId = mongoose.Schema.ObjectId;
+
 const fillSchema = new mongoose.Schema(
     {
         marketId: {
@@ -26,6 +27,13 @@ const fillSchema = new mongoose.Schema(
         takerUserId: {
             type: ObjectId,
             ref: "User",
+            required: true,
+        },
+        // TRANSFER: existing contracts change owner (BUY vs SELL, same outcome)
+        // MINT: two opposite BUY orders create a new YES/NO pair
+        kind: {
+            type: String,
+            enum: ["TRANSFER", "MINT"],
             required: true,
         },
         price: {

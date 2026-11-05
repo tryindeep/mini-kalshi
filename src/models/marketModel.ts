@@ -20,7 +20,7 @@ const marketSchema = new mongoose.Schema({
     },
     resolution: {
         type: String,
-        enum: ["YES", "NO", "PENDING"],
+        enum: ["YES", "NO", "PENDING","NULL"],
         default: "PENDING",
     },
     expiry: {

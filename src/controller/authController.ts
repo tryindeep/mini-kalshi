@@ -105,7 +105,7 @@ export const authController = {
             // added fake money 
             const user = await userModel.findByIdAndUpdate(
                 { _id: req.user.id },
-                { $inc: { availableUsd: amount } },
+                { $inc: { availableUsdBalance: amount } },
                 { returnDocument : "after"}
             )
 

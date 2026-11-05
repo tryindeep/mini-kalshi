@@ -1,6 +1,6 @@
 import {z} from "zod"
 
-export const createOderSchema = z.object({
+export const createOrderSchema = z.object({
     marketId: z.string().regex(/^[a-f\d]{24}$/i),
     type : z.enum(["BUY" , "SELL"]),
     side : z.enum(["YES" , "NO"]),

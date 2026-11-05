@@ -57,7 +57,7 @@ export const marketController = {
 
         } catch (error) {
             console.log("error creating market: ", error);
-            return res.status(400).json({ message: "failed to create market" });
+            return res.status(500).json({ message: "failed to create market" });
         }
     },
 
