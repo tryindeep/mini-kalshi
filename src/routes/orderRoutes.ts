@@ -5,4 +5,5 @@ export const orderRouter = Router();
 
 
 orderRouter.use(authMiddleware);
-orderRouter.post("/createOder" , orderController.createOrder)
+orderRouter.post("/createOder" , orderController.split)
+// orderRouter.post("/createOder" , orderController.createOrder)
