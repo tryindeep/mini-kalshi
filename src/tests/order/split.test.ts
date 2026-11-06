@@ -7,7 +7,7 @@ const LOGIN_PATH = "/api/v1/auth/login";
 const ONRAMP_PATH = "/api/v1/auth/onramp";
 const TRANSACTIONS_PATH = "/api/v1/auth/transactions";
 const MARKET_PATH = "/api/v1/market";
-const SPLIT_PATH = "/api/v1/order/createOder";
+const SPLIT_PATH = "/api/v1/order/split";
 
 const api = axios.create({
     baseURL: BACKEND_URL,

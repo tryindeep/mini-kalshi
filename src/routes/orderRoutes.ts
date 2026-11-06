@@ -5,5 +5,6 @@ export const orderRouter = Router();
 
 
 orderRouter.use(authMiddleware);
-orderRouter.post("/createOder" , orderController.split)
+orderRouter.post("/split" , orderController.split);
+orderRouter.post("/merge" , orderController.merge);
 // orderRouter.post("/createOder" , orderController.createOrder)
