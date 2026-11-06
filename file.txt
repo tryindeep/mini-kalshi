@@ -1,0 +1,15 @@
+Step 4a — Reserve and create order
+Lock USD or contracts and create OPEN order
+
+
+
+
+Step 4b — Same-side matching
+Match BUY with SELL or SELL with BUY
+
+Step 4c — Opposite-side mint matching
+Match BUY YES with BUY NO
+
+
+Step 4d — Edge cases
+Partial fills, self-trading, concurrency and rollback
