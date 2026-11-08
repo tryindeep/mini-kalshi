@@ -115,6 +115,7 @@ describe(`POST ${RESOLVE_PATH}`, () => {
 
     const invalidBodies: Array<[string, Record<string, unknown>]> = [
         ["marketId is missing", { resolution: "YES" }],
+        ["marketId is not an object id", { marketId: "not-an-id", resolution: "YES" }],
         ["resolution is missing", { marketId: missingMarketId }],
         ["body is empty", {}],
         ["resolution is lowercase", { marketId: missingMarketId, resolution: "yes" }],

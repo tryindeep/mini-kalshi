@@ -1,4 +1,5 @@
 import type { Request, Response } from "express"
+import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import bcryprt from "bcrypt";
 import { onrampSchema, signinSchema, signupSchema } from "../types/authValidator";
@@ -88,6 +89,7 @@ export const authController = {
             if (!req.user) {
                 return res.status(401).json({ message: "Unauthorized" });
             }
+            const userId = req.user.id;
             const parsed = onrampSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ message: "Incorrect Format" });
@@ -103,27 +105,34 @@ export const authController = {
             }
 
             // added fake money 
-            const user = await userModel.findByIdAndUpdate(
-                { _id: req.user.id },
-                { $inc: { availableUsdBalance: amount } },
-                { returnDocument: "after" }
-            )
+            const balance = await mongoose.connection.transaction(async (session) => {
+                const user = await userModel.findByIdAndUpdate(
+                    userId,
+                    { $inc: { availableUsdBalance: amount } },
+                    { returnDocument: "after", session }
+                );
 
-            if (!user) {
+                if (!user) {
+                    return null;
+                }
+
+                await transactionLogModel.create([{
+                    userId: user.id,
+                    action: "onramp",
+                    qtyChange: 0,
+                    balanceUSDChange: amount,
+                }], { session });
+
+                return user.availableUsdBalance;
+            });
+
+            if (balance === null) {
                 return res.status(404).json({ error: "User not found" });
             }
 
-            // Onramping in walletEvent
-            await transactionLogModel.create({
-                userId: user.id,
-                action: "onramp",
-                qtyChange: 0,
-                balanceUSDChange: +amount,
-            });
-
-            res.status(200).json({
+            return res.status(200).json({
                 message: "balance added successfully",
-                balance: user.availableUsdBalance,
+                balance,
             })
 
         } catch (error) {
