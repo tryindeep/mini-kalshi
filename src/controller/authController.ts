@@ -87,26 +87,26 @@ export const authController = {
             console.log(req.user);
             if (!req.user) {
                 return res.status(401).json({ message: "Unauthorized" });
-            }            
+            }
             const parsed = onrampSchema.safeParse(req.body);
             if (!parsed.success) {
                 return res.status(400).json({ message: "Incorrect Format" });
             }
             const { amount } = parsed.data;
-            
+
             console.log(amount);
-            
+
             if (!Number.isSafeInteger(amount) || amount <= 0) {
                 return res.status(400).json({
                     message: "invalid input",
                 });
             }
-  
+
             // added fake money 
             const user = await userModel.findByIdAndUpdate(
                 { _id: req.user.id },
                 { $inc: { availableUsdBalance: amount } },
-                { returnDocument : "after"}
+                { returnDocument: "after" }
             )
 
             if (!user) {

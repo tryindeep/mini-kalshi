@@ -1,8 +1,9 @@
-// import { Router } from "express";
-// import { resolveController } from "../controller/resolveController";
-// import { authMiddleware } from "../middleware/authMiddleware";
-// import { adminMiddleware } from "../middleware/adminMiddleware";
+import { Router } from "express";
+import { authMiddleware } from "../middleware/authMiddleware";
+import { adminMiddleware } from "../middleware/adminMiddleware";
+import { resolveController } from "../controller/resolveController";
 
-// export const resolveRouter = Router();
+export const resolveRouter = Router();
 
-// resolveRouter.post("/" , authMiddleware, adminMiddleware ,resolveController.resolve);
+resolveRouter.post("/resolve" , authMiddleware, adminMiddleware , resolveController.resolve);
+
